@@ -1,0 +1,37 @@
+#!/usr/bin/env Rscript
+
+suppressPackageStartupMessages(library("argparse"))
+
+parser = ArgumentParser()
+parser$add_argument("--read_trans_CB_UMIs", help="read_CB_UMIs.tsv file", required=TRUE, nargs=1)
+parser$add_argument("--gene_trans_map", help="gene/trans map file", required=TRUE, nargs=1)
+parser$add_argument("--output", help="name of output file", required=TRUE, nargs=1)
+
+args = parser$parse_args()
+
+read_trans_CB_UMIs_filename = args$read_trans_CB_UMIs
+gene_trans_map_filename = args$gene_trans_map
+output_filename = args$output
+
+
+library(tidyverse)
+
+message("-parsing read CB and UMIs: ", read_trans_CB_UMIs_filename)
+read_trans_CB_UMIs = read.csv(read_trans_CB_UMIs_filename, header=F, sep="\t", stringsAsFactors=F)
+colnames(read_trans_CB_UMIs) = c('read_id', 'gene_id', 'transcript_id', 'cell_barcode', 'UMI')
+
+message("-parsing gene/trans map: ", gene_trans_map_filename)
+gene_trans_map = read.csv(gene_trans_map_filename, header=F, sep="\t", stringsAsFactors=F)
+colnames(gene_trans_map) = c('gene_id', 'transcript_id', 'gene_symbol')
+
+message("-merging info into single summary output")
+
+read_assignments = left_join(read_trans_CB_UMIs, gene_trans_map, by=c('transcript_id','gene_id'))
+
+read_assignments = read_assignments %>% select(read_id, cell_barcode, UMI, gene_id, transcript_id, gene_symbol) 
+
+write.table(read_assignments, file=output_filename, sep="\t", row.names=F, col.names=F, quote=F)
+
+quit(save = "no", status = 0, runLast = FALSE)
+
+
